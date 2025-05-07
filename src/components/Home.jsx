@@ -1,0 +1,101 @@
+import React, {useState, useEffect} from 'react'
+import axios from 'axios'
+import { useNavigate } from 'react-router-dom';
+import Button from 'react-bootstrap/Button';
+import Form from 'react-bootstrap/Form';
+import 'bootstrap/dist/css/bootstrap.min.css';
+
+function Home() {
+  const [username, setUsername] = useState("")
+  const [isLoggedIn, setLoggedIn] = useState(false)
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkLoggedInUser = async () => {
+      try {
+        const token = localStorage.getItem("accessToken")
+        if (token){
+          const config = {
+            headers:{
+              "Authorization": `Bearer ${token}`
+            }
+          }
+          const response = await axios.get("https://car-maintenance-backend-cefb13b79607.herokuapp.com/auth/user/", config)
+          setLoggedIn(true)
+          setUsername(response.data.username)
+        }
+        else{
+          setLoggedIn(false)
+          setUsername("")
+        }
+      } catch {
+        setLoggedIn(false)
+          setUsername("")
+      }
+    }
+    checkLoggedInUser()
+  }, [username])
+
+  const handleLogout = async () => {
+    try{
+      const accessToken = localStorage.getItem("accessToken");
+      const refreshToken = localStorage.getItem("refreshToken");      
+
+      if(accessToken && refreshToken) {
+        const config = {
+          headers: {
+            "Authorization":`Bearer ${accessToken}`
+          }
+        };        
+        const res = await axios.post("https://car-maintenance-backend-cefb13b79607.herokuapp.com/auth/logout/", {"refresh":refreshToken}, config)
+        if (res){
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("refreshToken");
+          setLoggedIn(false);
+          setUsername("");
+          navigate("/auth/login/")
+        }
+        
+      }
+    }
+    catch(error){
+      console.error("Failed to logout", error.response?.data || error.message)
+    }
+  }
+
+  return (
+    <>
+      <div>
+        
+        {isLoggedIn ? (
+        <>
+        <h2>Hi, {username}.</h2>
+        <div>
+        <Button variant="primary" onClick={() => navigate('/cars/')}>
+          My Cars
+        </Button>
+        </div>
+        <br />
+        <div>
+        <Button variant="primary" onClick={() => navigate('/carsrecords/')}>
+          My Cars Maintenance Records
+        </Button>
+        </div>
+        <br />
+        <div>
+        <Button onClick={handleLogout}>Logout</Button>
+
+        </div>
+        
+        </>
+      ):(
+          <h2>If you have an account please Login</h2>
+        )}
+        
+      </div>
+    </>
+    
+  )
+}
+
+export default Home
